@@ -36,14 +36,17 @@ As a fist model, [meta-llama/Llama-3.2-1B-Instruct](https://huggingface.co/meta-
 
 To get a stable and reproductive environment a Python virtual environment is used:
 
+> [!NOTE]  
+> In order to keep the overview, a default python virtaul environment was created, in which the dependencies of all used models are installed 
+
 ```Bash
 # load modules
 module load Python/3.12.3-GCCcore-13.3.0
 module load CUDA/12.6.0
 
 # create virtual environment
-python -m venv llama_env
-source llama_env/bin/activate
+python -m venv llm_env
+source llm_env/bin/activate
 ```
 
 Install the necessary dependencies:
@@ -51,6 +54,7 @@ Install the necessary dependencies:
 pip install torch
 pip install transformers
 pip install accelerate
+pip install evaluate
 ```
 
 To run the model, the batch job [run_llama.sh](first_model/run_llama.sh) and a corresponding [python scipt](first_model/run_llama_inference.py) was created.
@@ -60,14 +64,54 @@ After running the job (`sbatch run_llama.sh`), a slurm log file is created with 
 {'role': 'assistant', 'content': "Arrr, me hearty! Yer lookin' fer me, eh? Well, I be Captain Cutlass, the scurviest and most cunning pirate to ever sail the seven seas! Me trusty parrot, Polly, be me loyal sidekick and me most trusted advisor. We've had us many a grand adventure together, plunderin' treasure and battlin' scurvy dogs. So, what be bringin' ye to these waters?"}
 ```
 
+#### Running a Qwen2.5-Coder model
+As a second model, [Qwen2.5-Coder-7B-Instruct](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct) was used. This model has significantly improvements in code generation, code reasoning and code fixing and does have more parameters than the previously used. Therefore it is suitable for this project.
+
+
+To run the model, the batch job [run_qwen.sh](first_model/run_qwen.sh) and a corresponding [python scipt](qwen/run_qwen_inference.py) was created.
+
+After running the job (`sbatch run_qwen.sh`), a slurm log file is created with the output of the job. E.g. 
+
+```
+Sure! Quick Sort is a popular and efficient sorting algorithm that uses a divide-and-conquer approach to sort elements. Here's a Python implementation of the Quick Sort algorithm:
+
+def quick_sort(arr):
+    if len(arr) <= 1:
+        return arr
+    else:
+        pivot = arr[len(arr) // 2]
+        left = [x for x in arr if x < pivot]
+        middle = [x for x in arr if x == pivot]
+        right = [x for x in arr if x > pivot]
+        return quick_sort(left) + middle + quick_sort(right)
+
+# Example usage:
+arr = [3, 6, 8, 10, 1, 2, 1]
+sorted_arr = quick_sort(arr)
+print(sorted_arr)
+
+
+### Explanation:
+1. **Base Case**: If the array has 0 or 1 elements, it is already sorted, so we return it as is.
+2. **Pivot Selection**: We choose the pivot element from the array. In this example, we select the middle element.
+3. **Partitioning**: We create three sub-arrays:
+   - `left`: All elements less than the pivot.
+   - `middle`: All elements equal to the pivot.
+   - `right`: All elements greater than the pivot.
+4. **Recursive Sorting**: We recursively apply the `quick_sort` function to the `left` and `right` sub-arrays.
+5. **Concatenation**: Finally, we concatenate the sorted `left` sub-array, the `middle` sub-array, and the sorted `right` sub-array to get the final sorted array.
+
+This implementation is simple and easy to understand, but it may not be the most efficient in terms of space complexity due to the use of additional lists. For an in-place version, you can modify the algorithm to avoid creating new lists.
+
+```
+
 #### Working with hugging face datasets
 Install the necessary dependencies:
 ```Bash
 pip install datasets
 ```
-After the installation, the hugging face datasets python library can be used to load to the data. In [run_llama_interface_datasets.py](fist_model/run_llama_interface_datasets.py) the [Code_Vulnerability_Security_DPO](https://huggingface.co/datasets/CyberNative/Code_Vulnerability_Security_DPO).
-
-!TODO...
+After the installation, the hugging face datasets python library can be used to load to the data. Due to performance, the meta-llama/Llama-3.2-1B-Instruct is used to get familiar with huggingface datasets. 
+In [run_llama_interface_datasets.py](fist_model/run_llama_interface_datasets.py) the [Code_Vulnerability_Security_DPO](https://huggingface.co/datasets/CyberNative/Code_Vulnerability_Security_DPO) is loaded. This is a dataset created to train models for secure coding. In this case we will use the rejected answers as input and ask the model to detect and fix the vulnerability. Furthermore the chosen anser can be used as the expected solution.
 
 
 
