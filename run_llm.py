@@ -2,7 +2,9 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 
 model_name = "meta-llama/Llama-3.2-1B-Instruct"
+# model_name = "meta-llama/Meta-Llama-3-8B"
 # model_name = "Qwen/Qwen2.5-Coder-7B-Instruct"
+
 
 # Load model and tokenizer
 model = AutoModelForCausalLM.from_pretrained(
@@ -19,7 +21,6 @@ messages = [
     {"role": "user", "content": prompt}
 ]
 
-# Format input for Llama-3.2
 text = tokenizer.apply_chat_template(
     messages,
     tokenize=False,

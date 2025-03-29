@@ -10,7 +10,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 # Load model
 model_id = "meta-llama/Llama-3.2-1B-Instruct"
 
-# Load HumanEval dataset
+# Load evaluation dataset
 human_eval = load_dataset("openai_humaneval")['test']
 
 # Load code evaluation metric
