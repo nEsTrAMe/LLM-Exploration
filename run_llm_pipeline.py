@@ -31,19 +31,23 @@ pipe = pipeline(**PIPELINE_ARGS)
 
 # Define prompting strategies
 PROMPT_VARIANTS = {
-    "PROMPT#1": lambda p: p,
-    "PROMPT#2": lambda p: f"{p}\n\n# Think step-by-step before writing the code.",
+    "PROMPT#1": lambda p: [
+        {"role": "system", "content": "You are an AI that completes Python code!"},
+        {"role": "user", "content": p},
+    ],
+    "PROMPT#2": lambda p: [
+        {"role": "system", "content": "You are an AI that completes Python code!"},
+        {"role": "system", "content": "You always reason and think step-by-step before writing the code"},
+        {"role": "user", "content": p},
+    ],
 }
 
-def generate_code(prompt, num_samples=5):
+def generate_code(messages, num_samples=1):
     """Generate code completions for a given prompt, extracting code blocks."""
     candidates = []
     for _ in range(num_samples):
-        messages = [
-            {"role": "system", "content": "You are an AI that completes Python code!"},
-            {"role": "user", "content": prompt},
-        ]
-        outputs = pipe(messages, max_new_tokens=256)
+
+        outputs = pipe(messages, max_new_tokens=512)
         generated_text = outputs[0]["generated_text"].strip()
 
         # Extract the first Python code block if present
@@ -53,11 +57,10 @@ def generate_code(prompt, num_samples=5):
         else:
             # Fall back to entire text if no code block is found
             code = generated_text
-
         candidates.append(code)
     return candidates
 
-def evaluate_results(results_by_prompt, test_cases, k_values=[1, 5]):
+def evaluate_results(results_by_prompt, test_cases, k_values=[1, 1, 1]):
     """Evaluate generated code and print pass@k scores."""
     prompt_performance = {}
     for prompt_key, predictions in results_by_prompt.items():
@@ -82,13 +85,13 @@ results_by_prompt = {key: [] for key in PROMPT_VARIANTS.keys()}
 i = 0
 for problem in data_set:
     # unvomment for testing
-    if i == 2:
+    if i == 1:
         break
     test_cases.append(problem["test"])
 
     for prompt_key, prompt_fn in PROMPT_VARIANTS.items():
-        prompt = prompt_fn(problem["prompt"])
-        results_by_prompt[prompt_key].append(generate_code(prompt))
+        messages = prompt_fn(problem["prompt"])
+        results_by_prompt[prompt_key].append(generate_code(messages))
 
     # uncomment for testing
     i += 1
@@ -96,6 +99,7 @@ for problem in data_set:
 # Evaluate PROMPT#1 and PROMPT#2
 prompt_performance = evaluate_results(results_by_prompt, test_cases)
 
+'''
 # Define and evaluate PROMPT#3
 PROMPT_VARIANTS["PROMPT#3"] = lambda p, l, s: f"{p}\n\n# Here is the solution of a previous run:\n {l}. The pass@1 score of this solution was {s}. Improve the solution."
 results_by_prompt["PROMPT#3"] = []
@@ -104,7 +108,7 @@ results_by_prompt["PROMPT#3"] = []
 i = 0
 for problem in data_set:
     # uncomment for testing
-    if i == 2:
+    if i == 1:
         break
 
     best_prompt = "PROMPT#2" if prompt_performance["PROMPT#2"]["pass@1"] >= prompt_performance["PROMPT#1"]["pass@1"] else "PROMPT#1"
@@ -116,3 +120,4 @@ for problem in data_set:
 
 # Evaluate PROMPT#3
 evaluate_results({"PROMPT#3": results_by_prompt["PROMPT#3"]}, test_cases)
+'''
