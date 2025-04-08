@@ -1,4 +1,5 @@
 import os
+import re
 from transformers import pipeline
 from evaluate import load
 from datasets import load_dataset
@@ -35,28 +36,28 @@ PROMPT_VARIANTS = {
 }
 
 def generate_code(prompt, num_samples=5):
-    """Generate code completions for a given prompt."""
+    """Generate code completions for a given prompt, extracting code blocks."""
     candidates = []
     for _ in range(num_samples):
         messages = [
-            {"role": "system", "content": "You are an AI that completes Python code! Only output Python code, no explanations!"},
+            {"role": "system", "content": "You are an AI that completes Python code!"},
             {"role": "user", "content": prompt},
-            
-            # add new message instead of building the whole string
         ]
         outputs = pipe(messages, max_new_tokens=256)
         generated_text = outputs[0]["generated_text"].strip()
 
-        # Format code output
-        if generated_text.startswith("```python"):
-            generated_text = generated_text[9:]
-        if generated_text.endswith("```"):
-            generated_text = generated_text[:-3]
+        # Extract the first Python code block if present
+        match = re.search(r"```python(.*?)```", generated_text, re.DOTALL)
+        if match:
+            code = match.group(1).strip()
+        else:
+            # Fall back to entire text if no code block is found
+            code = generated_text
 
-        candidates.append(generated_text.strip())
+        candidates.append(code)
     return candidates
 
-def evaluate_results(results_by_prompt, test_cases, k_values=[1, 3]):
+def evaluate_results(results_by_prompt, test_cases, k_values=[1, 5]):
     """Evaluate generated code and print pass@k scores."""
     prompt_performance = {}
     for prompt_key, predictions in results_by_prompt.items():
@@ -81,7 +82,7 @@ results_by_prompt = {key: [] for key in PROMPT_VARIANTS.keys()}
 i = 0
 for problem in data_set:
     # unvomment for testing
-    if i == 1:
+    if i == 2:
         break
     test_cases.append(problem["test"])
 
@@ -103,7 +104,7 @@ results_by_prompt["PROMPT#3"] = []
 i = 0
 for problem in data_set:
     # uncomment for testing
-    if i == 1:
+    if i == 2:
         break
 
     best_prompt = "PROMPT#2" if prompt_performance["PROMPT#2"]["pass@1"] >= prompt_performance["PROMPT#1"]["pass@1"] else "PROMPT#1"
