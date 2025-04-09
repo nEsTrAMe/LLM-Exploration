@@ -23,105 +23,78 @@ PIPELINE_ARGS = {
 data_set = load_dataset("openai_humaneval")['test']
 code_eval_metric = load("code_eval")
 
+def fix_tests(example):
+    """fix testing"""
+    example['test'] += f"\ncheck({example['entry_point']})"
+    return example
 
-# overwrite datset, see discord
+def get_prompt(example, strategy="default", feedback=None, test=None):
+    """function which provides the different prompt strategies"""
+    messages = [
+    {"role": "system", "content": "You are an AI that completes Python code!"},
+    ]
+    prompt = example["prompt"]
+    if strategy == "default":
+        messages.append({"role": "user", "content": prompt})
 
-# Initialize pipeline
-pipe = pipeline(**PIPELINE_ARGS)
+    elif strategy == "reasoning":
+        messages.append({"role": "user", "content": "Think through the problem carefully and explain your reasoning before writing code.\n\n" })
+        messages.append({"role": "user", "content": prompt})
 
-prompts = ["PROMPT#1", "PROMPT#2", "PROMPT#3"]
+    elif strategy == "feedback":
+        messages.append({"role": "user", "content": f"The following problem was provided to you in the previous run:\n{prompt}"})
+        messages.append({"role": "user", "content": f"You provided the following solution for the problem:\n{feedback}"})
+        messages.append({"role": "user", "content": f"The tests provided the following feedback:\n{test}"})
+        messages.append({"role": "user", "content": "Provide an improved solution to pass all the tests"})
 
-def generate_code(messages, num_samples=5):
-    """Generate code compleations"""
+    return messages
+
+def generate_code(example, strategy="default", num_samples=1, feedback=None, test=None):
+    """generate code compleations"""
+    messages = get_prompt(example, strategy=strategy, feedback=feedback, test=test)
+
     candidates = []
     for _ in range(num_samples):
         outputs = pipe(messages, max_new_tokens=512)
         generated_text = outputs[0]["generated_text"].strip()
 
-        # Extract the first Python code block if present
         match = re.search(r"```python(.*?)```", generated_text, re.DOTALL)
-        if match:
-            code = match.group(1).strip()
-        else:
-            code = generated_text
+        code = match.group(1).strip() if match else generated_text
         candidates.append(code)
     return candidates
 
-def evaluate_results(results_by_prompt, test_cases, k_values=[1, 3, 5]):
-    """Evaluate generated code and print pass@k scores."""
-    prompt_performance = {}
-    for prompt_key, predictions in results_by_prompt.items():
-        pass_at_k, _ = code_eval_metric.compute(
-            references=test_cases,
-            predictions=predictions,
-            k=k_values,
-            num_workers=4,
-            timeout=10.0,
-        )
-        prompt_performance[prompt_key] = pass_at_k
-        print(f"\nResults for {prompt_key}:")
-        for k in k_values:
-            print(f"Pass@{k}: {pass_at_k[f'pass@{k}'] * 100:.2f}%")
-    return prompt_performance
-
-def evaluate_single(reference, prediction):
+def evaluate_code(reference, prediction, k_values=[1]):
     """Evaluate a single prediction with the code_eval metric."""
-    result, _ = code_eval_metric.compute(
+    k_pass, results = code_eval_metric.compute(
         references=[reference],
         predictions=[prediction],
-        k=[1],
+        k=k_values,
         num_workers=1,
         timeout=10.0,
     )
-    return result["pass@1"]
+    return k_pass, results
 
-# Main logic
-test_cases = []
-results_by_prompt = {key: [] for key in prompts}
+# Fix testing
+data_set = data_set.map(fix_tests)
 
-# Define the base prompt (shared starting point)
-base_message = [
-    {"role": "system", "content": "You are an AI that completes Python code!"},
-]
+# Initialize pipeline
+pipe = pipeline(**PIPELINE_ARGS)
 
-i = 0
-for problem in data_set:
-    if i == 10:  # Testing limiter
-        break
+# testing
+example = data_set[70]
 
-    test_cases.append(problem["test"])
+# 1. Default
+default = generate_code(example, strategy="default")
+k_pass1, results = evaluate_code(example['test'], default)
+print(k_pass1)
 
-    # PROMPT#1
-    simple_request = base_message.copy()
-    simple_request.append({"role": "user", "content": problem["prompt"]})
+# 2. Reasoning
+reasoning = generate_code(example, strategy="reasoning")
+k_pass, results = evaluate_code(example['test'], reasoning)
+print(k_pass)
 
-    # Generate and collect code for the single prompt
-    results_1 = generate_code(simple_request)
-    results_by_prompt["PROMPT#1"].append(results_1)
-
-    # PROMPT#2
-    reasoning_request = base_message.copy()
-    reasoning_request.append({"role": "system", "content": "You always reason and think step-by-step before writing the code"})
-    reasoning_request.append({"role": "user", "content": problem["prompt"]})
-
-    # Generate and collect code for the single prompt
-    results_2 = generate_code(reasoning_request)
-    results_by_prompt["PROMPT#2"].append(results_2)
-
-    score_2 = evaluate_single(problem["test"], results_2)
-
-    # PROMPT#3
-    feedback_request = base_message.copy()
-    feedback_request.append({"role": "user", "content": problem["prompt"]})
-    feedback_request.append({"role": "user", "content": f"In the previous attempt you provided the following solution:\n{results_2[0]}"})
-    feedback_request.append({"role": "user", "content": f"The provided solution had a pass@1 score of {score_2} using the following test cases:\n {problem['test']}"})
-    feedback_request.append({"role": "user", "content": "Improve the solution if the score is not 1.0"})
-
-    # Generate and collect code for the single prompt
-    results_3 = generate_code(feedback_request)
-    results_by_prompt["PROMPT#3"].append(results_3)
-
-    i += 1
-
-
-prompt_performance = evaluate_results(results_by_prompt, test_cases)
+# 3. Feedback
+feedback = generate_code(example, strategy="feedback", feedback=reasoning, test=results[0][0][1]['result'])
+k_pass2, results2 = evaluate_code(example['test'], feedback)
+print(k_pass2)
+print(results2)
