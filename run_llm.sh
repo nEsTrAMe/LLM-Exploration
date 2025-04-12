@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=run_model
+#SBATCH --job-name=benchmark_llm
 #SBATCH --time=02:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:rtx3090:4
@@ -12,4 +12,3 @@ source ~/SSE/llm_env/bin/activate
 
 # Run the inference script
 python run_llm.py
-

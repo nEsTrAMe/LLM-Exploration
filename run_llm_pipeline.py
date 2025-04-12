@@ -1,6 +1,10 @@
 
 # TODO:log in json
 
+#######################################
+# deprecated, see run_llm.py
+#######################################
+
 import os
 import re
 from transformers import pipeline
