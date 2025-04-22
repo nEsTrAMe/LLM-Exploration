@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import hashlib
 from transformers import pipeline
 from evaluate import load
 from datasets import load_dataset
@@ -10,9 +11,9 @@ os.environ["HF_ALLOW_CODE_EVAL"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # Model configuration
-# MODEL_NAME = "meta-llama/Llama-3.2-1B-Instruct"
+MODEL_NAME = "meta-llama/Llama-3.2-1B-Instruct"
 # MODEL_NAME = "meta-llama/Meta-Llama-3-8B"
-MODEL_NAME = "Qwen/Qwen2.5-Coder-7B-Instruct"
+ #MODEL_NAME = "Qwen/Qwen2.5-Coder-7B-Instruct"
 PIPELINE_ARGS = {
     "task": "text-generation",
     "model": MODEL_NAME,
@@ -20,6 +21,7 @@ PIPELINE_ARGS = {
     "device_map": "auto",
     "token": "to be replaced",
     "return_full_text": False,
+    "temperature": 0.7,
 }
 
 # Load dataset and evaluation metric
@@ -33,6 +35,10 @@ def fix_tests(example):
     """fix testing"""
     example['test'] += f"\ncheck({example['entry_point']})"
     return example
+
+def hash_code(code):
+    """calculate the hash of the code"""
+    return hashlib.md5(code.strip().encode()).hexdigest()
 
 def get_prompt(example, strategy="default", feedback=None, test=None):
     """function which provides the different prompt strategies"""
@@ -95,7 +101,7 @@ pipe = pipeline(**PIPELINE_ARGS)
 # Loop through multiple examples
 results_summary = []
 
-for idx, example in enumerate(data_set.select(range(5))):
+for idx, example in enumerate(data_set.select([70])):
 
     task_log = {
         "PROMPT": example["prompt"],
@@ -123,48 +129,78 @@ for idx, example in enumerate(data_set.select(range(5))):
         "feedback": reasoning_result
     })
 
-    # Feedback loop using all candidates and results
-    attempt_codes = []
-    attempt_feedback = []
 
-    current_solutions = generate_code(example, strategy="default")
-    attempt_codes.extend(current_solutions)
+    # branch every  canidate should be continued and not only the first one
+    # we could use hash functions to optimize this because somethimes the code outputs are the same
 
-    k_pass, results = evaluate_code(example['test'], current_solutions)
-    feedback_batch = [res[1]['result'] for res in results[0]]
-    attempt_feedback.extend(feedback_batch)
+    # Feedback loop using branching for each candidate
+    seen_hashes = set()
+    initial_candidates = generate_code(example, strategy="default", num_samples=3)
+
+    # Store each branch with its own path of feedback
+    branches = []
+
+    # Evaluate and initialize branches
+    for candidate in initial_candidates:
+        code_hash = hash_code(candidate)
+        if code_hash in seen_hashes:
+            continue
+        seen_hashes.add(code_hash)
+
+        k_pass, results = evaluate_code(example['test'], [candidate])
+        feedback = results[0][0][1]['result']
+
+        branches.append({
+            "codes": [candidate],
+            "feedback": [feedback],
+            "k_pass": k_pass,
+        })
 
     task_log["HISTORY"].append({
         "strategy": "feedback-attempt-1",
-        "candidates": current_solutions,
-        "k_pass": k_pass,
-        "feedback": results
+        "candidates": initial_candidates,
+        "branch_feedback": [b["feedback"] for b in branches],
     })
 
-    # attempts 2 and 3
+    # Further feedback iterations
     for attempt in range(2, 4):
+        new_branches = []
+        for branch in branches:
+            if any("passed" in fb for fb in branch["feedback"]):
+                continue  # Stop if this branch already succeeded
 
-        if 'passed' in feedback_batch:
-            break
+            improved_candidates = generate_code(
+                example,
+                strategy="feedback",
+                feedback=branch["codes"],
+                test=branch["feedback"]
+            )
 
-        improved_solutions = generate_code(
-            example,
-            strategy="feedback",
-            feedback=attempt_codes,
-            test=attempt_feedback
-        )
+            for candidate in improved_candidates:
+                code_hash = hash_code(candidate)
+                if code_hash in seen_hashes:
+                    continue
+                seen_hashes.add(code_hash)
 
-        k_pass, results = evaluate_code(example['test'], improved_solutions)
-        feedback_batch = [res[1]['result'] for res in results[0]]
-        attempt_codes.extend(improved_solutions)
-        attempt_feedback.extend(feedback_batch)
+                k_pass, results = evaluate_code(example['test'], [candidate])
+                feedback = results[0][0][1]['result']
+
+
+                new_branch = {
+                    "codes": branch["codes"] + [candidate],
+                    "feedback": branch["feedback"] + [feedback],
+                    "k_pass": k_pass,
+                }
+                new_branches.append(new_branch)
 
         task_log["HISTORY"].append({
             "strategy": f"feedback-attempt-{attempt}",
-            "candidates": improved_solutions,
-            "k_pass": k_pass,
-            "feedback": results
+            "branch_feedback": [b["feedback"] for b in new_branches],
+            "candidates": [b["codes"][-1] for b in new_branches],
         })
+
+        branches.extend(new_branches)
+
 
     # Save the log
     logs[f"{example['task_id']}"] = task_log
@@ -174,3 +210,8 @@ with open("humaneval_run_logs.json", "w") as f:
     json.dump(logs, f, indent=2)
 
 print("\nLogs written to 'humaneval_run_logs.json'")
+
+
+# average all k pass values, store in a list and average, average all pass@1 and pass@3 etc. can also be done within another file
+# check error messages
+# extract reasoning
