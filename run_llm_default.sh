@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=benchmark_llm
+#SBATCH --job-name=benachmark_llm_default
 #SBATCH --time=02:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:rtx3090:4
@@ -11,4 +11,4 @@ module load CUDA/12.6.0
 source ~/SSE/llm_env/bin/activate
 
 # Run the inference script
-python run_llm.py
+python run_llm_default.py
