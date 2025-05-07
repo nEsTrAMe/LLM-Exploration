@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import sys
 import tempfile
 import subprocess
 from transformers import pipeline
@@ -10,10 +11,19 @@ from datasets import load_dataset
 os.environ["HF_ALLOW_CODE_EVAL"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-# Model configuration
-MODEL_NAME = "meta-llama/Llama-3.2-1B-Instruct"
-# MODEL_NAME = "meta-llama/Meta-Llama-3-8B"
-# MODEL_NAME = "Qwen/Qwen2.5-Coder-7B-Instruct"
+# Get model
+MODEL_NAME = sys.argv[1]
+clean_model_name = MODEL_NAME.replace("/", "-")
+
+# Get mode
+MODE = sys.argv[2]
+
+if MODE == "2":
+    mode = "reasoning"
+elif MODE == "3":
+    mode = "feedback"
+else:
+    mode = "default"
 
 PIPELINE_ARGS = {
     "task": "text-generation",
@@ -41,6 +51,16 @@ def test_solution():
     return example
 
 def get_prompt(example, feedback, code, error_msg):
+
+    if MODE == "2":
+
+        messages = [
+            {"role": "user", "content": "You are an AI that completes Python code!"},
+            {"role": "user", "content": "Reason step-by-step but keep the reasoning as short as possible. Put your final answer within python``` answer ```"},
+            {"role": "user", "content": example["prompt"]}
+        ]
+        return messages
+
     messages = [
         {"role": "system", "content": "You are an AI that completes Python code!"},
         {"role": "user", "content": example["prompt"]},
@@ -69,7 +89,7 @@ def generate_code(example, num_samples=1, feedback=False, code=None, error_msg=N
     messages = get_prompt(example, feedback, code, error_msg)
     candidates = []
     for _ in range(num_samples):
-        outputs = pipe(messages, max_new_tokens=512)
+        outputs = pipe(messages, max_new_tokens=4096)
         generated_text = outputs[0]["generated_text"].strip()
         match = re.search(r"```python(.*?)```", generated_text, re.DOTALL)
         code = match.group(1).strip() if match else generated_text
@@ -124,13 +144,14 @@ for example in dataset.select(range(50)):
         retry_count = 0
         improved = False
 
-        # Retry if it failed
-        while result != "passed" and retry_count < MAX_RETRIES:
-            code = generate_code(example, 1, True, code, error_msg)[0]
-            result, error_msg = run_pytest_on_code(code, example["test"])
-            retry_count += 1
-            if result == "passed":
-                improved = True
+        if MODE == "3":
+            # Retry if it failed
+            while result != "passed" and retry_count < MAX_RETRIES:
+                code = generate_code(example, 1, True, code, error_msg)[0]
+                result, error_msg = run_pytest_on_code(code, example["test"])
+                retry_count += 1
+                if result == "passed":
+                    improved = True
 
 
         final_candidates.append(code)
@@ -163,7 +184,8 @@ logs["average_pass@k"] = avg_pass_k
 logs["total_feedback_improvements"] = sum(improvement_flags for task_id, task in logs.items() if isinstance(task, dict) for improvement_flags in task.get("improvements", []))
 
 # Save results
-with open("humaneval_feedback_prompt_results.json", "w") as f:
+output_file = f"json/humaneval_{mode}_{clean_model_name}.json"
+with open(output_file, "w") as f:
     json.dump(logs, f, indent=2)
 
-print("\nEvaluation complete. Logs saved to 'humaneval_feedback_prompt_results.json'")
+print(f"\nEvaluation complete. Logs saved to '{output_file}'")
