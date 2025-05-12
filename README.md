@@ -57,6 +57,16 @@ In this project, two distict types of large language models where evaluated. Fis
 - [DeepSeek-R1-Distill-Qwen-14B](https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-14B)
 
 ## 🏃 Run project
+
+> [!IMPORTANT]  
+> Adjust the Hardware requirements depending on the model used.
+
+Create folders for logs and for the json output:
+```Bash
+mkdir logs
+mkdir json
+```
+
 To run a specific part of the evaluation pipeline for a single model, use the following command:
 ```Bash
 sbatch run.sh "model name" MODE
@@ -72,57 +82,43 @@ To run the full evaluation pipeline across multiple models, use the [submit_all.
 bash submit_all.sh
 ```
 
-> [!IMPORTANT]  
-> Adjust the Hardware requirements depending on the model used.
-
 ## 📋 Evaluation
 The following tables show the average pass@k values for different models, categorized by prompt type. The prompts used, the generated candidates, and the detailed test results from the test run can be found [here](/results/).
 
 ### Default prompt
 
-<center>
-
 | Model                        | pass@1 | pass@3 | pass@5 |
 | ---------------------------- | ------ | ------ | ------ |
-| Qwen2.5-Coder-1.5B-Instruct  | 0.xx   | 0.xx   | 0.xx   |
-| Qwen2.5-Coder-7B-Instruct    | 0.xx   | 0.xx   | 0.xx   |
-| Llama-3.2-1B-Instruct        | 0.xx   | 0.xx   | 0.72   |
-| DeepSeek-R1-Distill-Llama-8B | 0.xx   | 0.xx   | 0.xx   |
-| DeepSeek-R1-Distill-Qwen-7B  | 0.xx   | 0.xx   | 0.xx   |
-| DeepSeek-R1-Distill-Qwen-14B | 0.xx   | 0.xx   | 0.xx   |
-
-</center>
+| Qwen2.5-Coder-1.5B-Instruct  | 0.59   | 0.75   | 0.78   |
+| Qwen2.5-Coder-7B-Instruct    | 0.80   | 0.86   | 0.88   |
+| Llama-3.2-1B-Instruct        | 0.36   | 0.49   | 0.58   |
+| DeepSeek-R1-Distill-Llama-8B | 0.76   | 0.84   | 0.87   |
+| DeepSeek-R1-Distill-Qwen-7B  | 0.78   | 0.86   | 0.87   |
+| DeepSeek-R1-Distill-Qwen-14B | 0.84   | 0.88   | 0.90   |
 
 ### Reasoning prompt
 
-<center>
-
 | Model                        | pass@1 | pass@3 | pass@5 |
 | ---------------------------- | ------ | ------ | ------ |
-| Qwen2.5-Coder-1.5B-Instruct  | 0.xx   | 0.xx   | 0.xx   |
-| Qwen2.5-Coder-7B-Instruct    | 0.xx   | 0.xx   | 0.xx   |
-| Llama-3.2-1B-Instruct        | 0.xx   | 0.xx   | 0.xx   |
-| DeepSeek-R1-Distill-Llama-8B | 0.xx   | 0.xx   | 0.xx   |
-| DeepSeek-R1-Distill-Qwen-7B  | 0.xx   | 0.xx   | 0.xx   |
+| Qwen2.5-Coder-1.5B-Instruct  | 0.49   | 0.74   | 0.77   |
+| Qwen2.5-Coder-7B-Instruct    | 0.79   | 0.87   | 0.89   |
+| Llama-3.2-1B-Instruct        | 0.23   | 0.37   | 0.46   |
+| DeepSeek-R1-Distill-Llama-8B | 0.75   | 0.85   | 0.88   |
+| DeepSeek-R1-Distill-Qwen-7B  | 0.76   | 0.84   | 0.87   |
 | DeepSeek-R1-Distill-Qwen-14B | 0.xx   | 0.xx   | 0.xx   |
-
-</center>
 
 ### Feedback Loop
 
-<center>
-
 | Model                        | pass@1 | pass@3 | pass@5 |
 | ---------------------------- | ------ | ------ | ------ |
-| Qwen2.5-Coder-1.5B-Instruct  | 0.xx   | 0.xx   | 0.xx   |
-| Qwen2.5-Coder-7B-Instruct    | 0.xx   | 0.xx   | 0.xx   |
-| Llama-3.2-1B-Instruct        | 0.xx   | 0.xx   | 0.xx   |
-| DeepSeek-R1-Distill-Llama-8B | 0.xx   | 0.xx   | 0.xx   |
-| DeepSeek-R1-Distill-Qwen-7B  | 0.xx   | 0.xx   | 0.xx   |
+| Qwen2.5-Coder-1.5B-Instruct  | 0.68   | 0.82   | 0.86   |
+| Qwen2.5-Coder-7B-Instruct    | 0.91   | 0.94   | 0.94   |
+| Llama-3.2-1B-Instruct        | 0.37   | 0.55   | 0.65   |
+| DeepSeek-R1-Distill-Llama-8B | 0.90   | 0.95   | 0.96   |
+| DeepSeek-R1-Distill-Qwen-7B  | 0.86   | 0.93   | 0.94   |
 | DeepSeek-R1-Distill-Qwen-14B | 0.xx   | 0.xx   | 0.xx   |
 
-</center>
-
+### Summary
 TODO: Summarize and Evaluate Results!
 
 ## Sources
