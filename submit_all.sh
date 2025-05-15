@@ -1,9 +1,11 @@
 #!/bin/bash
 
 models=(
+  "meta-llama/Llama-3.2-1B-Instruct"
+  "meta-llama/Llama-3.1-8B-Instruct"
   "Qwen/Qwen2.5-Coder-1.5B-Instruct"
   "Qwen/Qwen2.5-Coder-7B-Instruct"
-  "meta-llama/Llama-3.2-1B-Instruct"
+  "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
   "deepseek-ai/DeepSeek-R1-Distill-Llama-8B"
   "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
   "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B"

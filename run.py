@@ -7,10 +7,6 @@ import subprocess
 from transformers import pipeline
 from datasets import load_dataset
 
-# Environment setup
-os.environ["HF_ALLOW_CODE_EVAL"] = "1"
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
 # Get model
 MODEL_NAME = sys.argv[1]
 clean_model_name = MODEL_NAME.replace("/", "-")
