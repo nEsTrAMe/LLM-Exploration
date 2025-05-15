@@ -139,6 +139,8 @@ The evaluation clearly demonstrates that larger models consistently outperform t
 
 This indicates that reasoning and feedback strategies are particularly effective when applied to models already capable of complex reasoning, and that both model architecture and scale play key roles in performance.
 
+![pass@1 performance by prompt strategy](/results/Figure_1.png)
+
 ## 🧠 Key Insights
 **Feedback loops are powerful**: Incorporating test-driven feedback significantly enhances model performance. This mirrors how human developers iterate over code, suggesting that LLMs benefit from similar interactive refinement cycles.
 
@@ -146,7 +148,7 @@ This indicates that reasoning and feedback strategies are particularly effective
 
 **Specialized training boosts reasoning**: Reasoning-optimized models like `DeepSeek-R1-*` consistently outperform instruct-tuned models of similar size, highlighting the impact of targeted reinforcement learning strategies in complex coding tasks.
 
-## Sources
+## 🌐 Sources
 1. https://arxiv.org/abs/2501.12948
 2. https://www.arxiv.org/abs/2502.03671
 3. https://arxiv.org/abs/2201.11903

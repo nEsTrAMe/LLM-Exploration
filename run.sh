@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=run
-#SBATCH --time=10:00:00
+#SBATCH --time=24:00:00
 #SBATCH --partition=gpu
-#SBATCH --gres=gpu:rtx3090:1
+#SBATCH --gres=gpu:rtx4090:1
 #SBATCH --output=logs/%x_%j.out
 
 module load Python/3.12.3-GCCcore-13.3.0
